@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v5';
+ $('#live').textContent='● Dữ liệu trực tuyến • v7';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -65,12 +65,86 @@ function medals(){
  for(let a of [men,women,relay])for(let i=0;i<Math.min(3,a.length);i++)medalAdd(m,a[i].lq,i);
  return m
 }
+
+function lqNo(lq){let m=String(lq||'').match(/(\d+)/);return m?+m[1]:0}
+function lqLabel(lq){let n=lqNo(lq);return n?`Liên quân ${n}`:(lq||'')}
+function lqPill(lq){let n=lqNo(lq);return `<span class="lq-pill lq-pill-${n}">${esc(lqLabel(lq))}</span>`}
+function medalSummary(){
+ const out={};
+ for(const [mid,name] of Object.entries(SPORTS)) out[mid]={name,gold:null,silver:null,bronze:[]};
+ for(let mid of ['M01','M02','M03','M07','M08']){
+   let rs=rows.filter(r=>r.Mon_ID===mid),f=rs.find(r=>r['Vòng']==='Chung kết'),semis=rs.filter(r=>String(r['Vòng']).startsWith('Bán kết'));
+   if(f&&winner(f)){let w=winner(f);out[mid].gold=resolvedSide(f,w);out[mid].silver=resolvedSide(f,w==='A'?'B':'A')}
+   for(let sf of semis){let w=winner(sf);if(w){let lo=resolvedSide(sf,w==='A'?'B':'A');if(lo)out[mid].bronze.push(lo)}}
+ }
+ const rankRun=(mid,filterFn)=>{
+   let a=rows.filter(r=>r.Mon_ID===mid&&filterFn(r)&&num(r['BTC nhập / Hệ thống tính A'])!==null)
+    .map(r=>({name:resolvedSide(r,'A')?.name||r['Đối tượng A'],lq:resolvedSide(r,'A')?.lq||r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])}))
+    .sort((a,b)=>a.t-b.t);
+   if(a[0])out[mid].gold=a[0]; if(a[1])out[mid].silver=a[1]; if(a[2])out[mid].bronze=[a[2]];
+ };
+ rankRun('M04',r=>r['Vòng']==='Chung kết');
+ rankRun('M05',r=>r['Vòng']==='Vòng loại');
+ rankRun('M06',r=>true);
+ return out;
+}
+function medalPerson(o,kind){return o?`<div class="medal-person">${kind} ${lqPill(o.lq)}<span>${esc(o.name)}</span></div>`:`<div class="medal-person muted">— Chưa xác định</div>`}
+function overviewMedals(){
+ const sm=medalSummary();
+ return `<div class="section-title"><h2>Huy chương theo nội dung</h2><span>Cập nhật tự động từ kết quả thi đấu</span></div>
+ <div class="sport-medal-grid">${Object.entries(sm).map(([mid,x])=>`<div class="sport-medal-card">
+   <div class="sport-medal-title">${esc(x.name)}</div>
+   ${medalPerson(x.gold,'🥇')}${medalPerson(x.silver,'🥈')}
+   ${x.bronze.length?x.bronze.map(o=>medalPerson(o,'🥉')).join(''):`<div class="medal-person muted">🥉 Chưa xác định</div>`}
+ </div>`).join('')}</div>`;
+}
+function groupTable(mid,g){
+ let st=standings(mid,g);
+ return `<div class="group-card"><h3>${esc(g)}</h3><div class="table-wrap compact"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thắng</th><th>Thua</th>${mid==='M01'?'<th>HS set</th>':''}<th>HS điểm</th></tr></thead><tbody>${st.map((x,i)=>`<tr class="${i<2?'q':''}"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${lqPill(x.lq)}</td><td>${x.w}</td><td>${x.l}</td>${mid==='M01'?`<td>${x.sf-x.sa}</td>`:''}<td>${x.pf-x.pa}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function allRunners(mid){
+ if(!groupStageComplete(mid)) return [];
+ let a=[];
+ for(let g of groups(mid)){let st=standings(mid,g);if(st[1])a.push(adjustedRunner(mid,g,st[1]))}
+ a.sort((x,y)=>y.w-x.w||((y.pf-y.pa)-(x.pf-x.pa))||y.pf-x.pf||x.name.localeCompare(y.name,'vi'));
+ return a;
+}
+function runnersAllBlock(mid){
+ let a=allRunners(mid);
+ if(!a.length)return `<div class="notice">Chờ hoàn thành toàn bộ vòng bảng để so sánh các VĐV/đội Nhì bảng.</div>`;
+ return `<h3>So sánh các Nhì bảng</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>Bảng</th><th>LQ</th><th>Thắng</th><th>HS điểm</th><th>Tổng điểm thắng</th><th>Kết quả</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<2?'q':''}"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.group)}</td><td>${lqPill(x.lq)}</td><td>${x.w}</td><td>${x.pf-x.pa}</td><td>${x.pf}</td><td>${i<2?'<b>✅ Vào Tứ kết</b>':'—'}</td></tr>`).join('')}</tbody></table></div><div class="notice">Bảng 4 VĐV/đội: khi so sánh Nhì xuất sắc, hệ thống loại kết quả gặp người/đội xếp thứ 4.</div>`;
+}
+
 function show(id){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));id==='home'?home():sport(id);scrollTo({top:0,behavior:'smooth'})}
-function home(){let md=medals();$('#app').innerHTML=`<div class="grid">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="num">${md[q][0]} 🥇</div><div>🥈 ${md[q][1]} &nbsp; 🥉 ${md[q][2]}</div></div>`).join('')}</div><div class="section-title"><h2>Kết quả mới nhất</h2><span>Tự động từ Google Sheets</span></div><div class="cards">${recent().length?recent().map(matchCard).join(''):'<div class="card">Chưa có kết quả thi đấu.</div>'}</div><div class="section-title"><h2>8 nội dung thi đấu</h2></div><div class="cards">${Object.entries(SPORTS).map(([id,n])=>`<div class="card"><div class="sport">${n}</div><div class="meta">${rows.filter(r=>r.Mon_ID===id).length} lượt/trận trong dữ liệu</div><p><button onclick="show('${id}')">Xem kết quả →</button></p></div>`).join('')}</div>`}
+function home(){
+ let md=medals();
+ $('#app').innerHTML=`<div class="grid">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="num">${md[q][0]} 🥇</div><div>🥈 ${md[q][1]} &nbsp; 🥉 ${md[q][2]}</div></div>`).join('')}</div>
+ ${overviewMedals()}
+ <div class="section-title"><h2>Kết quả mới nhất</h2><span>Tự động từ Google Sheets</span></div><div class="cards">${recent().length?recent().map(matchCard).join(''):'<div class="card">Chưa có kết quả thi đấu.</div>'}</div>
+ <div class="section-title"><h2>8 nội dung thi đấu</h2></div><div class="cards">${Object.entries(SPORTS).map(([id,n])=>`<div class="card sport-card"><div class="team-stripe"></div><div class="sport">${n}</div><div class="meta">${rows.filter(r=>r.Mon_ID===id).length} lượt/trận trong dữ liệu</div><p><button onclick="show('${id}')">Xem kết quả →</button></p></div>`).join('')}</div>`}
 function matchCard(r){let A=resolvedSide(r,'A'),B=resolvedSide(r,'B');return `<div class="card"><span class="badge">${esc(r['Vòng'])}${r['Bảng/Lượt']?' • '+esc(r['Bảng/Lượt']):''}</span><div class="sport" style="margin-top:8px">${esc(r['Môn thi'])}</div><div class="score"><div><b>${esc(A?.name||'Chờ xác định')}</b><div class="meta">${esc(A?.lq||'')}</div></div><strong>${score(r)}</strong><div class="b"><b>${esc(B?.name||'Chờ xác định')}</b><div class="meta">${esc(B?.lq||'')}</div></div></div></div>`}
 function runnersBlock(mid){let r=bestRunners(mid);if(!r.length)return'';return `<h3>Nhì bảng xuất sắc</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>Bảng</th><th>LQ</th><th>Thắng</th><th>HS điểm</th><th>Điểm thắng</th></tr></thead><tbody>${r.map((x,i)=>`<tr class="q"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.group)}</td><td>${esc(x.lq)}</td><td>${x.w}</td><td>${x.pf-x.pa}</td><td>${x.pf}</td></tr>`).join('')}</tbody></table></div><div class="notice">Với bảng 4 VĐV/đội, khi so sánh Nhì xuất sắc hệ thống loại kết quả gặp người/đội xếp thứ 4.</div>`}
-function sport(mid){let rs=rows.filter(r=>r.Mon_ID===mid),html=`<div class="section-title"><h2>${SPORTS[mid]}</h2><span>${rs.length} lượt/trận</span></div>`;if(['M01','M02','M03'].includes(mid)){for(let g of groups(mid)){let st=standings(mid,g);html+=`<h3>${g}</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thắng</th><th>Thua</th>${mid==='M01'?'<th>HS set</th>':''}<th>HS điểm</th><th>Điểm thắng</th></tr></thead><tbody>${st.map((x,i)=>`<tr class="${i<2?'q':''}"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.lq)}</td><td>${x.w}</td><td>${x.l}</td>${mid==='M01'?`<td>${x.sf-x.sa}</td>`:''}<td>${x.pf-x.pa}</td><td>${x.pf}</td></tr>`).join('')}</tbody></table></div>`}html+=runnersBlock(mid)+knockout(mid,rs)}else if(['M04','M05','M06'].includes(mid)){html+=running(mid,rs)}else html+=knockout(mid,rs);html+=`<div class="section-title"><h2>Tất cả kết quả</h2></div><div class="cards">${rs.filter(r=>played(r)).map(matchCard).join('')||'<div class="card">Chưa có kết quả.</div>'}</div>`;$('#app').innerHTML=html}
-function knockout(mid,rs){
+function sport(mid,tab='ranking'){
+ let rs=rows.filter(r=>r.Mon_ID===mid);
+ let html=`<div class="sport-head"><div><div class="crumb">Tổng quan › ${esc(SPORTS[mid])}</div><h2>${esc(SPORTS[mid])}</h2></div><span>${rs.length} lượt/trận</span></div>`;
+ if(['M01','M02','M03'].includes(mid)){
+   html+=`<div class="subtabs"><button class="${tab==='ranking'?'active':''}" onclick="sport('${mid}','ranking')">Bảng xếp hạng</button><button class="${tab==='results'?'active':''}" onclick="sport('${mid}','results')">Kết quả trận đấu</button></div>`;
+   if(tab==='ranking'){
+     html+=`<h3>Vòng bảng</h3><div class="group-grid">${groups(mid).map(g=>groupTable(mid,g)).join('')}</div>`;
+     html+=runnersAllBlock(mid);
+     html+=knockout(mid,rs);
+   }else{
+     html+=`<div class="section-title"><h2>Kết quả trận đấu</h2><span>Điểm số theo từng trận</span></div><div class="cards">${rs.filter(r=>played(r)).map(matchCard).join('')||'<div class="card">Chưa có kết quả.</div>'}</div>`;
+   }
+ }else if(['M04','M05','M06'].includes(mid)){
+   html+=running(mid,rs);
+   html+=`<div class="section-title"><h2>Kết quả chi tiết</h2></div><div class="cards">${rs.filter(r=>played(r)).map(matchCard).join('')||'<div class="card">Chưa có kết quả.</div>'}</div>`;
+ }else{
+   html+=knockout(mid,rs);
+   html+=`<div class="section-title"><h2>Kết quả chi tiết</h2></div><div class="cards">${rs.filter(r=>played(r)).map(matchCard).join('')||'<div class="card">Chưa có kết quả.</div>'}</div>`;
+ }
+ $('#app').innerHTML=html;
+}function knockout(mid,rs){
  let ks=rs.filter(r=>!['Vòng bảng','Vòng loại'].includes(r['Vòng'])&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG'));
  if(!ks.length)return'';
  let order=[...new Set(ks.map(r=>r['Vòng']))];
