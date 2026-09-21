@@ -1,8 +1,17 @@
-const SHEET_ID='1jvi9Nfe7dkU9JpnOOP5ER2Lhog5eXth3j6CoCJQCtBw';
+const API_URL='https://script.google.com/macros/s/AKfycbz9kntIYYsvnHiAHGQK_555mkeAJkzvsu07RKhuYL0duKf4JOi8WE6fdTXhd9Olf9On/exec';
 const SPORTS={M01:'Bóng bàn',M02:'Pickleball đôi nam nữ',M03:'Pickleball đôi nam',M04:'Chạy 100m nam',M05:'Chạy 100m nữ',M06:'Chạy tiếp sức 2500m',M07:'Bóng đá',M08:'Kéo co'};
 let rows=[]; const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function csvParse(t){let a=[],r=[],v='',q=false;for(let i=0;i<t.length;i++){let c=t[i],n=t[i+1];if(q){if(c==='"'&&n==='"'){v+='"';i++}else if(c==='"')q=false;else v+=c}else if(c==='"')q=true;else if(c===','){r.push(v);v=''}else if(c==='\n'){r.push(v.replace(/\r$/,''));a.push(r);r=[];v=''}else v+=c}if(v||r.length){r.push(v);a.push(r)}return a}
-async function load(){const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('05_Ket_qua')}&t=${Date.now()}`;let res=await fetch(url);if(!res.ok)throw Error('Không đọc được Google Sheet');let m=csvParse(await res.text()),h=m.shift();rows=m.filter(x=>x[0]).map(x=>Object.fromEntries(h.map((k,i)=>[k,x[i]??''])));$('#live').textContent='● Dữ liệu trực tuyến';buildNav();show('home')}
+async function load(){
+ if(!API_URL.startsWith('https://script.google.com/')) throw Error('Chưa cấu hình URL Google Apps Script trong app.js');
+ const res=await fetch(`${API_URL}?sheet=05_Ket_qua&t=${Date.now()}`,{cache:'no-store'});
+ if(!res.ok) throw Error(`API trả về lỗi HTTP ${res.status}`);
+ const data=await res.json();
+ if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
+ rows=(data.rows||[]).filter(r=>r.Match_ID);
+ $('#live').textContent='● Dữ liệu trực tuyến';
+ buildNav(); show('home');
+}
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
 function num(v){let n=parseFloat(String(v??'').trim().replace(',','.'));return Number.isFinite(n)?n:null}
 function setScore(r){let a=0,b=0,pfA=0,pfB=0;for(let i=1;i<=5;i++){let x=num(r[`BB Set ${i} - A`]),y=num(r[`BB Set ${i} - B`]);if(x!==null&&y!==null){pfA+=x;pfB+=y;if(x>y)a++;else if(y>x)b++}}return {a,b,pfA,pfB}}
@@ -53,4 +62,4 @@ function running(mid,rs){let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!St
 function runTable(a,title,mark,medal){return `<h3>${title}</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}${medal&&i<3?' '+['🥇','🥈','🥉'][i]:''}</td><td>${esc(x.name)}</td><td>${esc(x.lq)}</td><td><b>${x.t}</b></td></tr>`).join('')||'<tr><td colspan="4">Chưa có thành tích.</td></tr>'}</tbody></table></div>`}
 // Kiểm thử nhanh engine ngay trên trình duyệt (không sửa dữ liệu thật).
 window.HATECO_ENGINE={standings,bestRunners,runnerAssignments,resolveCode,winner,medals,runningQualifiers};
-load().catch(e=>{$('#live').textContent='● Chưa kết nối';$('#app').innerHTML=`<div class="empty"><h2>Chưa đọc được dữ liệu Google Sheets</h2><p>${esc(e.message)}</p><p>Kiểm tra lại trạng thái Publish to web của file.</p></div>`});
+load().catch(e=>{$('#live').textContent='● Chưa kết nối';$('#app').innerHTML=`<div class="empty"><h2>Chưa đọc được dữ liệu Google Sheets</h2><p>${esc(e.message)}</p><p>Kiểm tra URL Web App trong app.js và quyền triển khai Apps Script.</p></div>`});
