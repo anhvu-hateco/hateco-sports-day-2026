@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v12';
+ $('#live').textContent='● Dữ liệu trực tuyến • v14';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -76,6 +76,10 @@ function lqNo(lq){let m=String(lq||'').match(/(\d+)/);return m?+m[1]:0}
 function lqLabel(lq){let n=lqNo(lq);return n?`Liên quân ${n}`:(lq||'')}
 function lqPill(lq){let n=lqNo(lq);return `<span class="lq-pill lq-pill-${n}">${esc(lqLabel(lq))}</span>`}
 function lqDot(lq){let n=lqNo(lq);return n?`<span class="lq-dot lq-dot-${n}" title="${esc(lqLabel(lq))}"></span>`:''}
+function medalMark(type){
+ const m={gold:['G','HCV'],silver:['S','HCB'],bronze:['B','HCĐ']}[type]||['',''];
+ return `<span class="medal-mark medal-${type}" title="${m[1]}"><span>${m[0]}</span></span>`;
+}
 function medalSummary(){
  const out={};
  for(const [mid,name] of Object.entries(SPORTS)) out[mid]={name,gold:null,silver:null,bronze:[]};
@@ -96,17 +100,18 @@ function medalSummary(){
  return out;
 }
 function medalPerson(o,kind){
+ const mark=medalMark(kind);
  return o
-  ? `<div class="medal-person medal-team-only"><span class="medal-icon">${kind}</span>${lqDot(o.lq)}<span class="medal-lq">${esc(lqLabel(o.lq))}</span></div>`
-  : `<div class="medal-person muted"><span class="medal-icon">${kind}</span><span>Chưa xác định</span></div>`;
+  ? `<div class="medal-person medal-team-only">${mark}${lqDot(o.lq)}<span class="medal-lq">${esc(lqLabel(o.lq))}</span></div>`
+  : `<div class="medal-person muted">${mark}<span>Chưa xác định</span></div>`;
 }
 function overviewMedals(){
  const sm=medalSummary();
  return `<div class="section-title"><h2>Huy chương theo nội dung</h2><span>Cập nhật tự động từ kết quả thi đấu</span></div>
  <div class="sport-medal-grid">${Object.entries(sm).map(([mid,x])=>`<div class="sport-medal-card">
    <div class="sport-medal-title">${esc(x.name)}</div>
-   ${medalPerson(x.gold,'🥇')}${medalPerson(x.silver,'🥈')}
-   ${x.bronze.length?x.bronze.map(o=>medalPerson(o,'🥉')).join(''):`<div class="medal-person muted">🥉 Chưa xác định</div>`}
+   ${medalPerson(x.gold,'gold')}${medalPerson(x.silver,'silver')}
+   ${x.bronze.length?x.bronze.map(o=>medalPerson(o,'bronze')).join(''):`<div class="medal-person muted">${medalMark('bronze')}<span>Chưa xác định</span></div>`}
  </div>`).join('')}</div>`;
 }
 function groupTable(mid,g){
@@ -150,7 +155,7 @@ function home(){
    <div class="home-banner-mark">26</div>
  </section>
  <div class="section-title"><h2>Bảng tổng huy chương</h2><span>Cập nhật tự động theo kết quả chính thức</span></div>
- <div class="grid team-medals">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="medal-counts"><span>🥇 <b>${md[q][0]}</b></span><span>🥈 <b>${md[q][1]}</b></span><span>🥉 <b>${md[q][2]}</b></span></div></div>`).join('')}</div>
+ <div class="grid team-medals">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="medal-counts"><span>${medalMark('gold')} <b>${md[q][0]}</b></span><span>${medalMark('silver')} <b>${md[q][1]}</b></span><span>${medalMark('bronze')} <b>${md[q][2]}</b></span></div></div>`).join('')}</div>
  ${overviewMedals()}
  <div class="section-title"><h2>8 nội dung thi đấu</h2><span>Chọn nội dung để xem bảng xếp hạng và kết quả</span></div>
  <div class="sport-overview-grid">${Object.entries(SPORTS).map(([id,n])=>`<button class="sport-overview-card" onclick="show('${id}')"><div class="sport-icon">${sportIcon(id)}</div><div><h3>${esc(n)}</h3><p>${sportMeta(id).slice(0,3).join(' • ')}</p></div><span class="arrow">→</span></button>`).join('')}</div>`;
@@ -192,11 +197,11 @@ function resultList(mid,rs){
 }
 function podium(a){
  if(!a.length)return '';
- let order=[a[1],a[0],a[2]].filter(Boolean), medal=['🥈','🥇','🥉'];
- return `<div class="podium">${order.map((x,i)=>`<div class="podium-card place-${i===1?1:i===0?2:3}"><div class="podium-medal">${medal[i]}</div><strong>${esc(x.name)}</strong><div>${lqDot(x.lq)}</div><b>${x.t}s</b></div>`).join('')}</div>`;
+ let order=[a[1],a[0],a[2]].filter(Boolean), types=['silver','gold','bronze'];
+ return `<div class="podium">${order.map((x,i)=>`<div class="podium-card place-${i===1?1:i===0?2:3}"><div class="podium-medal">${medalMark(types[i])}</div><strong>${esc(x.name)}</strong><div>${lqDot(x.lq)}</div><b>${x.t}s</b></div>`).join('')}</div>`;
 }
 function runTableV11(a,title,mark,medal){
- return `<div class="section-title small"><h2>${title}</h2></div><div class="table-wrap pro-table"><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>Liên quân</th><th>Thành tích</th><th>Huy chương</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}</td><td><b>${esc(x.name)}</b></td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td><td>${medal&&i<3?['🥇 HCV','🥈 HCB','🥉 HCĐ'][i]:'—'}</td></tr>`).join('')||'<tr><td colspan="5">Chưa có thành tích.</td></tr>'}</tbody></table></div>`;
+ return `<div class="section-title small"><h2>${title}</h2></div><div class="table-wrap pro-table"><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>Liên quân</th><th>Thời gian chạy</th><th>Huy chương</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}</td><td><b>${esc(x.name)}</b></td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td><td>${medal&&i<3?[`${medalMark('gold')} HCV`,`${medalMark('silver')} HCB`,`${medalMark('bronze')} HCĐ`][i]:'—'}</td></tr>`).join('')||'<tr><td colspan="5">Chưa có thành tích.</td></tr>'}</tbody></table></div>`;
 }
 function heatResults(mid,rs){
  let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG')&&num(r['BTC nhập / Hệ thống tính A'])!==null);
@@ -206,14 +211,15 @@ function heatResults(mid,rs){
  let hs=[...new Set(heatRows.map(r=>r['Bảng/Lượt']).filter(Boolean))];
  return `<div class="section-title"><h2>Kết quả các lượt chạy</h2><span>Xếp hạng tổng thể ${all.length} VĐV theo thành tích vòng loại</span></div>
  <div class="heat-grid">${hs.map(h=>{let a=heatRows.filter(r=>r['Bảng/Lượt']===h).map(r=>({id:r.Match_ID,name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((x,y)=>x.t-y.t);
- return `<div class="heat-card"><h3>${esc(h)}</h3><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map(x=>`<tr><td><b>${globalRank.get(x.id)}</b></td><td>${esc(x.name)}</td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td></tr>`).join('')}</tbody></table></div>`}).join('')}</div>`;
+ return `<div class="heat-card"><h3>${esc(h)}</h3><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>LQ</th><th>Thời gian chạy</th></tr></thead><tbody>${a.map(x=>`<tr><td><b>${globalRank.get(x.id)}</b></td><td>${esc(x.name)}</td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td></tr>`).join('')}</tbody></table></div>`}).join('')}</div>`;
 }
 function runningV11(mid,rs){
  let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG'));
  let final=[];
  if(mid==='M04') final=active.filter(r=>r['Vòng']==='Chung kết').map(r=>{let o=resolvedSide(r,'A');return {name:o?.name||r['Đối tượng A'],lq:o?.lq||r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])}}).filter(x=>x.t!==null).sort((a,b)=>a.t-b.t);
  else final=active.filter(r=>num(r['BTC nhập / Hệ thống tính A'])!==null).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t);
- return `<div class="championship-block"><div class="section-title"><h2>Bảng xếp hạng chung cuộc</h2><span>Thành tích chính thức</span></div>${podium(final.slice(0,3))}${runTableV11(final,'Xếp hạng',mid==='M04'?4:3,true)}</div>${heatResults(mid,rs)}`;
+ let heats = mid==='M04' ? heatResults(mid,rs) : '';
+ return `<div class="championship-block"><div class="section-title"><h2>Bảng xếp hạng chung cuộc</h2><span>Thành tích chính thức</span></div>${podium(final.slice(0,3))}${runTableV11(final,'Xếp hạng',mid==='M04'?4:3,true)}</div>${heats}`;
 }
 function knockoutV11(mid,rs){
  let ks=rs.filter(r=>!['Vòng bảng','Vòng loại'].includes(r['Vòng'])&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG')), order=[...new Set(ks.map(r=>r['Vòng']))];
@@ -222,8 +228,8 @@ function knockoutV11(mid,rs){
 }
 function finalRankingTeams(mid,rs){
  let f=rs.find(r=>r['Vòng']==='Chung kết'), out=[];
- if(f&&winner(f)){let w=winner(f),a=resolvedSide(f,w),b=resolvedSide(f,w==='A'?'B':'A');if(a)out.push({...a,medal:'🥇 HCV'});if(b)out.push({...b,medal:'🥈 HCB'})}
- rs.filter(r=>String(r['Vòng']).startsWith('Bán kết')).forEach(r=>{let w=winner(r);if(w){let o=resolvedSide(r,w==='A'?'B':'A');if(o)out.push({...o,medal:'🥉 HCĐ'})}});
+ if(f&&winner(f)){let w=winner(f),a=resolvedSide(f,w),b=resolvedSide(f,w==='A'?'B':'A');if(a)out.push({...a,medal:`${medalMark('gold')} HCV`});if(b)out.push({...b,medal:`${medalMark('silver')} HCB`})}
+ rs.filter(r=>String(r['Vòng']).startsWith('Bán kết')).forEach(r=>{let w=winner(r);if(w){let o=resolvedSide(r,w==='A'?'B':'A');if(o)out.push({...o,medal:`${medalMark('bronze')} HCĐ`})}});
  return `<div class="section-title"><h2>Kết quả chung cuộc</h2></div><div class="final-team-grid">${out.map((x,i)=>`<div class="final-team-card rank-${i+1}"><span>${x.medal}</span>${lqDot(x.lq)}<strong>${esc(x.name)}</strong></div>`).join('')||'<div class="empty-card">Chưa xác định kết quả chung cuộc.</div>'}</div>`;
 }
 function sport(mid,tab='ranking'){
