@@ -83,3 +83,9 @@ button{font-family:"Be Vietnam Pro",sans-serif}
 .card button{background:linear-gradient(135deg,var(--festival-blue),#173f9f);color:#fff;border:0;border-radius:9px;padding:9px 13px;font-weight:800}
 .lq-pill{font-weight:800}
 @media(max-width:700px){header h1{font-size:42px}.section-title h2,.sport-head h2{font-size:27px}}
+
+/* v8 */
+.team h3,.team .num,.team>div{color:#10213b!important;text-shadow:none!important}.team.lq3 h3,.team.lq3 .num,.team.lq3>div{color:#4c3b00!important}
+.lq-dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:0 0 11px;box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,0,0,.16)}
+.lq-dot-1{background:var(--festival-red)}.lq-dot-2{background:var(--festival-green)}.lq-dot-3{background:#f5b900}.lq-dot-4{background:var(--festival-blue)}
+.match-card{padding:14px 16px}.match-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.competitor{display:flex;justify-content:space-between;align-items:center;padding:9px 0;color:#8a94a8}.competitor+.competitor{border-top:1px solid #eef1f5}.competitor.winner{color:#0c1729}.competitor .who{display:flex;align-items:center;gap:9px}.match-score{font-family:"Barlow Condensed","Be Vietnam Pro",sans-serif;font-size:20px;font-weight:900;color:#0b1323}.match .line span{display:flex;align-items:center;gap:8px}

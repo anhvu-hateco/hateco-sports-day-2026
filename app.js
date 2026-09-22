@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v7';
+ $('#live').textContent='● Dữ liệu trực tuyến • v8';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -69,6 +69,7 @@ function medals(){
 function lqNo(lq){let m=String(lq||'').match(/(\d+)/);return m?+m[1]:0}
 function lqLabel(lq){let n=lqNo(lq);return n?`Liên quân ${n}`:(lq||'')}
 function lqPill(lq){let n=lqNo(lq);return `<span class="lq-pill lq-pill-${n}">${esc(lqLabel(lq))}</span>`}
+function lqDot(lq){let n=lqNo(lq);return `<span class="lq-dot lq-dot-${n}" title="${esc(lqLabel(lq))}"></span>`}
 function medalSummary(){
  const out={};
  for(const [mid,name] of Object.entries(SPORTS)) out[mid]={name,gold:null,silver:null,bronze:[]};
@@ -120,9 +121,14 @@ function home(){
  let md=medals();
  $('#app').innerHTML=`<div class="grid">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="num">${md[q][0]} 🥇</div><div>🥈 ${md[q][1]} &nbsp; 🥉 ${md[q][2]}</div></div>`).join('')}</div>
  ${overviewMedals()}
- <div class="section-title"><h2>Kết quả mới nhất</h2><span>Tự động từ Google Sheets</span></div><div class="cards">${recent().length?recent().map(matchCard).join(''):'<div class="card">Chưa có kết quả thi đấu.</div>'}</div>
  <div class="section-title"><h2>8 nội dung thi đấu</h2></div><div class="cards">${Object.entries(SPORTS).map(([id,n])=>`<div class="card sport-card"><div class="team-stripe"></div><div class="sport">${n}</div><div class="meta">${rows.filter(r=>r.Mon_ID===id).length} lượt/trận trong dữ liệu</div><p><button onclick="show('${id}')">Xem kết quả →</button></p></div>`).join('')}</div>`}
-function matchCard(r){let A=resolvedSide(r,'A'),B=resolvedSide(r,'B');return `<div class="card"><span class="badge">${esc(r['Vòng'])}${r['Bảng/Lượt']?' • '+esc(r['Bảng/Lượt']):''}</span><div class="sport" style="margin-top:8px">${esc(r['Môn thi'])}</div><div class="score"><div><b>${esc(A?.name||'Chờ xác định')}</b><div class="meta">${esc(A?.lq||'')}</div></div><strong>${score(r)}</strong><div class="b"><b>${esc(B?.name||'Chờ xác định')}</b><div class="meta">${esc(B?.lq||'')}</div></div></div></div>`}
+function matchCard(r){
+ let A=resolvedSide(r,'A'),B=resolvedSide(r,'B'),w=winner(r),sc=score(r),parts=sc.split('–');
+ return `<div class="card match-card"><div class="match-top"><span class="badge">${esc(r['Vòng']||'Thi đấu')}</span><span class="meta">${esc(r['Bảng/Lượt']||'')}</span></div>
+ <div class="competitor ${w==='A'?'winner':''}"><span class="who">${lqDot(A?.lq||r.LQ_A)}<b>${esc(A?.name||r['Đối tượng A']||'Chờ xác định')}</b></span><span class="match-score">${esc(parts[0]||'')}</span></div>
+ ${(r['Đối tượng B']||B)?`<div class="competitor ${w==='B'?'winner':''}"><span class="who">${lqDot(B?.lq||r.LQ_B)}<b>${esc(B?.name||r['Đối tượng B']||'Chờ xác định')}</b></span><span class="match-score">${esc(parts[1]||'')}</span></div>`:''}</div>`;
+}
+
 function runnersBlock(mid){let r=bestRunners(mid);if(!r.length)return'';return `<h3>Nhì bảng xuất sắc</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>Bảng</th><th>LQ</th><th>Thắng</th><th>HS điểm</th><th>Điểm thắng</th></tr></thead><tbody>${r.map((x,i)=>`<tr class="q"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.group)}</td><td>${esc(x.lq)}</td><td>${x.w}</td><td>${x.pf-x.pa}</td><td>${x.pf}</td></tr>`).join('')}</tbody></table></div><div class="notice">Với bảng 4 VĐV/đội, khi so sánh Nhì xuất sắc hệ thống loại kết quả gặp người/đội xếp thứ 4.</div>`}
 function sport(mid,tab='ranking'){
  let rs=rows.filter(r=>r.Mon_ID===mid);
@@ -158,7 +164,7 @@ function sport(mid,tab='ranking'){
    if(groupsDone){A=resolvedSide(r,'A');B=resolvedSide(r,'B')}
    let sc=(groupsDone&&played(r))?score(r).split('–'):['',''];
    let wait=isGroupSport&&!groupsDone?'Chờ hoàn thành vòng bảng':'Chờ kết quả vòng trước';
-   return `<div class="match"><div class="line"><span>${esc(A?.name||wait)} <small>${esc(A?.lq||'')}</small></span><b>${sc[0]||''}</b></div><div class="line"><span>${esc(B?.name||wait)} <small>${esc(B?.lq||'')}</small></span><b>${sc[1]||''}</b></div></div>`
+   return `<div class="match"><div class="line"><span>${lqDot(A?.lq)} ${esc(A?.name||wait)}</span><b>${sc[0]||''}</b></div><div class="line"><span>${lqDot(B?.lq)} ${esc(B?.name||wait)}</span><b>${sc[1]||''}</b></div></div>`
  }).join('')}</div>`).join('')}</div>`}
 function running(mid,rs){let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG'));if(mid==='M04'){let heats=active.filter(r=>r['Vòng']==='Vòng loại'&&num(r['BTC nhập / Hệ thống tính A'])!==null).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t), finals=active.filter(r=>r['Vòng']==='Chung kết').map(r=>{let o=resolvedSide(r,'A');return {name:o?.name||'Chờ xác định',lq:o?.lq||'',t:num(r['BTC nhập / Hệ thống tính A'])}}).filter(x=>x.t!==null).sort((a,b)=>a.t-b.t);return `<div class="notice">4 VĐV có thời gian vòng loại nhanh nhất được hệ thống tự xác định vào Chung kết.</div>${runTable(heats,'Xếp hạng vòng loại',4,false)}${runTable(finals,'Chung kết',3,true)}`}let vals=active.filter(r=>num(r['BTC nhập / Hệ thống tính A'])!==null).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t);return runTable(vals,'Xếp hạng thành tích',3,true)}
 function runTable(a,title,mark,medal){return `<h3>${title}</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}${medal&&i<3?' '+['🥇','🥈','🥉'][i]:''}</td><td>${esc(x.name)}</td><td>${esc(x.lq)}</td><td><b>${x.t}</b></td></tr>`).join('')||'<tr><td colspan="4">Chưa có thành tích.</td></tr>'}</tbody></table></div>`}
