@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v15';
+ $('#live').textContent='● Dữ liệu trực tuyến • v18';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -255,8 +255,26 @@ function mobileSports(){
 }
 function mobileRanking(){ $('#app').innerHTML=`<div class="mobile-page-title"><span>🏆</span><h2>Bảng xếp hạng</h2></div><div class="mobile-ranking-note">Huy chương theo nội dung</div>${overviewMedals()}` }
 function mobileSchedule(){
- const a=rows.filter(r=>r['Ngày']).slice().sort((x,y)=>String(x['Ngày']).localeCompare(String(y['Ngày'])));
- $('#app').innerHTML=`<div class="mobile-page-title"><span>📅</span><h2>Lịch thi đấu</h2></div><div class="schedule-list">${a.map(r=>`<article class="schedule-card"><div class="schedule-icon">${sportIconHtml(r.Mon_ID)}</div><div><b>${esc(SPORTS[r.Mon_ID]||r.Mon_ID)}</b><span>${esc(r['Vòng']||'')} ${r['Bảng/Lượt']?'• '+esc(r['Bảng/Lượt']):''}</span><small>${esc(r['Ngày']||'')} ${r['Địa điểm']?'• '+esc(r['Địa điểm']):''}</small></div></article>`).join('')||'<div class="empty-card">Chưa có lịch thi đấu.</div>'}</div>`;
+ // Mobile chỉ hiển thị lịch tổng quan theo môn/vòng, không bung từng bảng hay từng trận.
+ const normDate=v=>String(v||'').trim().replace(/-/g,'/');
+ const is3110=v=>/^31\/10(?:\/2026)?$/.test(normDate(v));
+ const keyDate=v=>{let m=normDate(v).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);return m?`${m[3]||'2026'}${String(m[2]).padStart(2,'0')}${String(m[1]).padStart(2,'0')}`:'99999999'};
+ const items=[];
+ Object.keys(SPORTS).forEach(mid=>{
+   const rs=rows.filter(r=>r.Mon_ID===mid);
+   if(mid==='M01') items.push({mid,stage:'Vòng loại / Vòng bảng',date:'27/09/2026',place:'Tập đoàn HATECO'});
+   const seen=new Set();
+   rs.forEach(r=>{
+     const stage=String(r['Vòng']||'').trim(), date=normDate(r['Ngày']);
+     if(!date) return;
+     if(mid==='M01' && (stage==='Vòng bảng'||stage==='Vòng loại')) return;
+     const place=is3110(date)?'Tập đoàn HATECO':String(r['Địa điểm']||'').trim();
+     const k=[mid,stage,date,place].join('|'); if(seen.has(k)) return; seen.add(k);
+     items.push({mid,stage:stage||'Thi đấu',date,place});
+   });
+ });
+ items.sort((a,b)=>keyDate(a.date).localeCompare(keyDate(b.date))||a.mid.localeCompare(b.mid)||a.stage.localeCompare(b.stage,'vi'));
+ $('#app').innerHTML=`<div class="mobile-page-title"><span>📅</span><h2>Lịch thi đấu</h2></div><div class="schedule-note">Lịch tổng quan theo môn thi đấu</div><div class="schedule-list">${items.map(r=>`<article class="schedule-card"><div class="schedule-icon">${sportIconHtml(r.mid)}</div><div><b>${esc(SPORTS[r.mid]||r.mid)}</b><span>${esc(r.stage)}</span><small>📅 ${esc(r.date)}${r.place?' &nbsp;•&nbsp; 📍 '+esc(r.place):''}</small></div></article>`).join('')||'<div class="empty-card">Chưa có lịch thi đấu.</div>'}</div>`;
 }
 function mobileShow(id){ mobileSetActive(id); if(id==='home')home(); else if(id==='ranking')mobileRanking(); else if(id==='schedule')mobileSchedule(); else mobileSports(); scrollTo({top:0,behavior:'smooth'}) }
 
