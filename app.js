@@ -132,7 +132,7 @@ function runnersAllBlock(mid){
 }
 
 
-function show(id){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));id==='home'?home():sport(id);scrollTo({top:0,behavior:'smooth'})}
+function show(id){if(id==='home')mobileSetActive('home');else mobileSetActive('sports');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));id==='home'?home():sport(id);scrollTo({top:0,behavior:'smooth'})}
 function sportMeta(mid){
  const cfg={
   M01:['23 VĐV','6 bảng vòng tròn','8 VĐV vào Tứ kết','BO5'],
@@ -145,7 +145,8 @@ function sportMeta(mid){
   M08:['4 đội','2 trận Bán kết','Chung kết','BO3']
  }; return cfg[mid]||[];
 }
-function sportIcon(mid){return {M01:'◉',M02:'◉',M03:'◉',M04:'⌁',M05:'⌁',M06:'⇢',M07:'⚽',M08:'⇆'}[mid]||'◆'}
+function sportIcon(mid){return {M01:'assets/tabletennis.png',M02:'assets/picklemixed.png',M03:'assets/picklemen.png',M04:'assets/runmen.png',M05:'assets/runwomen.png',M06:'assets/relay.png',M07:'assets/football.png',M08:'assets/tug.png'}[mid]||''}
+function sportIconHtml(mid){return `<img src="${sportIcon(mid)}" alt="" loading="lazy">`}
 function home(){
  let md=medals();
  $('#app').innerHTML=`
@@ -155,10 +156,10 @@ function home(){
    <div class="home-banner-mark">26</div>
  </section>
  <div class="section-title"><h2>Bảng tổng huy chương</h2><span>Cập nhật tự động theo kết quả chính thức</span></div>
- <div class="grid team-medals">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><h3>Liên quân ${i+1}</h3><div class="medal-counts"><span>${medalMark('gold')} <b>${md[q][0]}</b></span><span>${medalMark('silver')} <b>${md[q][1]}</b></span><span>${medalMark('bronze')} <b>${md[q][2]}</b></span></div></div>`).join('')}</div>
- ${overviewMedals()}
+ <div class="grid team-medals">${['LQ1','LQ2','LQ3','LQ4'].map((q,i)=>`<div class="team lq${i+1}"><img class="team-lion" src="assets/lion${i+1}.png" alt=""><div class="team-copy"><h3>Liên quân ${i+1}</h3><div class="medal-counts"><span>${medalMark('gold')} <b>${md[q][0]}</b></span><span>${medalMark('silver')} <b>${md[q][1]}</b></span><span>${medalMark('bronze')} <b>${md[q][2]}</b></span></div></div></div>`).join('')}</div>
+ <div class="home-medals-by-sport">${overviewMedals()}</div>
  <div class="section-title"><h2>8 nội dung thi đấu</h2><span>Chọn nội dung để xem bảng xếp hạng và kết quả</span></div>
- <div class="sport-overview-grid">${Object.entries(SPORTS).map(([id,n])=>`<button class="sport-overview-card" onclick="show('${id}')"><div class="sport-icon">${sportIcon(id)}</div><div><h3>${esc(n)}</h3><p>${sportMeta(id).slice(0,3).join(' • ')}</p></div><span class="arrow">→</span></button>`).join('')}</div>`;
+ <div class="sport-overview-grid">${Object.entries(SPORTS).map(([id,n])=>`<button class="sport-overview-card sport-${id}" onclick="show('${id}')"><div class="sport-icon">${sportIconHtml(id)}</div><div><h3>${esc(n)}</h3><p>${sportMeta(id).slice(0,3).join(' • ')}</p></div><span class="arrow">→</span></button>`).join('')}</div>`;
 }
 function dateText(r){return r['Ngày']||''}
 function placeText(r){return r['Địa điểm']||''}
@@ -234,7 +235,7 @@ function finalRankingTeams(mid,rs){
 }
 function sport(mid,tab='ranking'){
  let rs=rows.filter(r=>r.Mon_ID===mid);
- let html=`<section class="sport-title"><div class="sport-title-icon">${sportIcon(mid)}</div><div><div class="crumb">Hội thao 2026 › ${esc(SPORTS[mid])}</div><h1>${esc(SPORTS[mid])}</h1><div class="sport-chips">${sportMeta(mid).map(x=>`<span>${esc(x)}</span>`).join('')}</div></div></section>`;
+ let html=`<section class="sport-title"><div class="sport-title-icon">${sportIconHtml(mid)}</div><div><div class="crumb">Hội thao 2026 › ${esc(SPORTS[mid])}</div><h1>${esc(SPORTS[mid])}</h1><div class="sport-chips">${sportMeta(mid).map(x=>`<span>${esc(x)}</span>`).join('')}</div></div></section>`;
  if(['M01','M02','M03'].includes(mid)){
    html+=`<div class="subtabs"><button class="${tab==='ranking'?'active':''}" onclick="sport('${mid}','ranking')">Bảng xếp hạng</button><button class="${tab==='results'?'active':''}" onclick="sport('${mid}','results')">Kết quả trận đấu</button></div>`;
    if(tab==='ranking'){
@@ -247,6 +248,18 @@ function sport(mid,tab='ranking'){
  }
  $('#app').innerHTML=html;
 }
+
+function mobileSetActive(id){document.querySelectorAll('#mobileNav button').forEach(b=>b.classList.toggle('active',b.dataset.mobile===id))}
+function mobileSports(){
+ $('#app').innerHTML=`<div class="mobile-page-title"><span>🏃</span><h2>Môn thi đấu</h2></div><div class="sport-overview-grid mobile-sports-grid">${Object.entries(SPORTS).map(([id,n])=>`<button class="sport-overview-card sport-${id}" onclick="show('${id}')"><div class="sport-icon">${sportIconHtml(id)}</div><div><h3>${esc(n)}</h3><p>${sportMeta(id).slice(0,2).join(' • ')}</p></div><span class="arrow">→</span></button>`).join('')}</div>`;
+}
+function mobileRanking(){ $('#app').innerHTML=`<div class="mobile-page-title"><span>🏆</span><h2>Bảng xếp hạng</h2></div><div class="mobile-ranking-note">Huy chương theo nội dung</div>${overviewMedals()}` }
+function mobileSchedule(){
+ const a=rows.filter(r=>r['Ngày']).slice().sort((x,y)=>String(x['Ngày']).localeCompare(String(y['Ngày'])));
+ $('#app').innerHTML=`<div class="mobile-page-title"><span>📅</span><h2>Lịch thi đấu</h2></div><div class="schedule-list">${a.map(r=>`<article class="schedule-card"><div class="schedule-icon">${sportIconHtml(r.Mon_ID)}</div><div><b>${esc(SPORTS[r.Mon_ID]||r.Mon_ID)}</b><span>${esc(r['Vòng']||'')} ${r['Bảng/Lượt']?'• '+esc(r['Bảng/Lượt']):''}</span><small>${esc(r['Ngày']||'')} ${r['Địa điểm']?'• '+esc(r['Địa điểm']):''}</small></div></article>`).join('')||'<div class="empty-card">Chưa có lịch thi đấu.</div>'}</div>`;
+}
+function mobileShow(id){ mobileSetActive(id); if(id==='home')home(); else if(id==='ranking')mobileRanking(); else if(id==='schedule')mobileSchedule(); else mobileSports(); scrollTo({top:0,behavior:'smooth'}) }
+
 // Kiểm thử nhanh engine ngay trên trình duyệt (không sửa dữ liệu thật).
 window.HATECO_ENGINE={standings,bestRunners,runnerAssignments,resolveCode,resolvedSide,winObj,winner,medals,medalSummary,runningQualifiers};
 load().catch(e=>{$('#live').textContent='● Chưa kết nối';$('#app').innerHTML=`<div class="empty"><h2>Chưa đọc được dữ liệu Google Sheets</h2><p>${esc(e.message)}</p><p>Kiểm tra URL Web App trong app.js và quyền triển khai Apps Script.</p></div>`});
