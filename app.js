@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v8';
+ $('#live').textContent='● Dữ liệu trực tuyến • v10';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -41,7 +41,13 @@ function bestRunners(mid){if(!groupStageComplete(mid))return [];let a=[];for(let
 function runnerAssignments(mid){let ru=bestRunners(mid);if(ru.length<2)return {ru1:ru[0]||null,ru2:ru[1]||null,qf1:ru[1]||null,qf4:ru[0]||null};let q1=ru[1],q4=ru[0];if((q1.group==='Bảng A'||q4.group==='Bảng F')&&ru[0].group!=='Bảng A'&&ru[1].group!=='Bảng F'){q1=ru[0];q4=ru[1]}return {ru1:ru[0],ru2:ru[1],qf1:q1,qf4:q4}}
 function findMatch(id){return rows.find(r=>r.Match_ID===id)}
 function sideObj(r,side){if(!r)return null;let n=r[side==='A'?'Đối tượng A':'Đối tượng B'],lq=r[side==='A'?'LQ_A':'LQ_B'];return n?{name:n,lq}:null}
-function winObj(id){let r=findMatch(id),w=winner(r);return w?sideObj(r,w):null}
+function winObj(id){
+ let r=findMatch(id),w=winner(r);
+ if(!r||!w)return null;
+ // Quan trọng: trận vòng trong chứa placeholder (Nhất bảng..., Thắng Tứ kết...).
+ // Người thắng phải kế thừa VĐV/đội thực đã được resolve từ slot của chính trận đó.
+ return resolvedSide(r,w);
+}
 function groupRankObj(mid,g,rank){let s=standings(mid,g)[rank-1];return s?{name:s.name,lq:s.lq,group:g}:null}
 function resolveCode(code,mid){if(!code)return null;if(code.startsWith('WIN_'))return winObj(code.slice(4));let m=code.match(/^M0[123]_G([A-F])_R1$/);if(m){const g=`Bảng ${m[1]}`;return groupComplete(mid,g)?groupRankObj(mid,g,1):null;}if(code.includes('BEST_RU1')){let x=runnerAssignments(mid).ru1;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2')){let x=runnerAssignments(mid).ru2;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2_NOT_GA')){let x=runnerAssignments(mid).qf1;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU1_NOT_GF')){let x=runnerAssignments(mid).qf4;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.startsWith('M04_HEAT_RANK_')){let qrows=rows.filter(r=>r.Mon_ID==='M04'&&r['Vòng']==='Vòng loại');if(!qrows.length||!qrows.every(r=>num(r['BTC nhập / Hệ thống tính A'])!==null))return null;let rank=+code.split('_').pop(),x=runningQualifiers()[rank-1];return x?{name:x.name,lq:x.lq}:null}return null}
 function resolvedSide(r,side){
@@ -69,7 +75,7 @@ function medals(){
 function lqNo(lq){let m=String(lq||'').match(/(\d+)/);return m?+m[1]:0}
 function lqLabel(lq){let n=lqNo(lq);return n?`Liên quân ${n}`:(lq||'')}
 function lqPill(lq){let n=lqNo(lq);return `<span class="lq-pill lq-pill-${n}">${esc(lqLabel(lq))}</span>`}
-function lqDot(lq){let n=lqNo(lq);return `<span class="lq-dot lq-dot-${n}" title="${esc(lqLabel(lq))}"></span>`}
+function lqDot(lq){let n=lqNo(lq);return n?`<span class="lq-dot lq-dot-${n}" title="${esc(lqLabel(lq))}"></span>`:''}
 function medalSummary(){
  const out={};
  for(const [mid,name] of Object.entries(SPORTS)) out[mid]={name,gold:null,silver:null,bronze:[]};
@@ -89,7 +95,11 @@ function medalSummary(){
  rankRun('M06',r=>true);
  return out;
 }
-function medalPerson(o,kind){return o?`<div class="medal-person">${kind} ${lqPill(o.lq)}<span>${esc(o.name)}</span></div>`:`<div class="medal-person muted">— Chưa xác định</div>`}
+function medalPerson(o,kind){
+ return o
+  ? `<div class="medal-person medal-team-only"><span class="medal-icon">${kind}</span>${lqDot(o.lq)}<span class="medal-lq">${esc(lqLabel(o.lq))}</span></div>`
+  : `<div class="medal-person muted"><span class="medal-icon">${kind}</span><span>Chưa xác định</span></div>`;
+}
 function overviewMedals(){
  const sm=medalSummary();
  return `<div class="section-title"><h2>Huy chương theo nội dung</h2><span>Cập nhật tự động từ kết quả thi đấu</span></div>
@@ -169,5 +179,5 @@ function sport(mid,tab='ranking'){
 function running(mid,rs){let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG'));if(mid==='M04'){let heats=active.filter(r=>r['Vòng']==='Vòng loại'&&num(r['BTC nhập / Hệ thống tính A'])!==null).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t), finals=active.filter(r=>r['Vòng']==='Chung kết').map(r=>{let o=resolvedSide(r,'A');return {name:o?.name||'Chờ xác định',lq:o?.lq||'',t:num(r['BTC nhập / Hệ thống tính A'])}}).filter(x=>x.t!==null).sort((a,b)=>a.t-b.t);return `<div class="notice">4 VĐV có thời gian vòng loại nhanh nhất được hệ thống tự xác định vào Chung kết.</div>${runTable(heats,'Xếp hạng vòng loại',4,false)}${runTable(finals,'Chung kết',3,true)}`}let vals=active.filter(r=>num(r['BTC nhập / Hệ thống tính A'])!==null).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t);return runTable(vals,'Xếp hạng thành tích',3,true)}
 function runTable(a,title,mark,medal){return `<h3>${title}</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}${medal&&i<3?' '+['🥇','🥈','🥉'][i]:''}</td><td>${esc(x.name)}</td><td>${esc(x.lq)}</td><td><b>${x.t}</b></td></tr>`).join('')||'<tr><td colspan="4">Chưa có thành tích.</td></tr>'}</tbody></table></div>`}
 // Kiểm thử nhanh engine ngay trên trình duyệt (không sửa dữ liệu thật).
-window.HATECO_ENGINE={standings,bestRunners,runnerAssignments,resolveCode,winner,medals,runningQualifiers};
+window.HATECO_ENGINE={standings,bestRunners,runnerAssignments,resolveCode,resolvedSide,winObj,winner,medals,medalSummary,runningQualifiers};
 load().catch(e=>{$('#live').textContent='● Chưa kết nối';$('#app').innerHTML=`<div class="empty"><h2>Chưa đọc được dữ liệu Google Sheets</h2><p>${esc(e.message)}</p><p>Kiểm tra URL Web App trong app.js và quyền triển khai Apps Script.</p></div>`});

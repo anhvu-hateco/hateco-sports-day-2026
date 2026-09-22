@@ -89,3 +89,14 @@ button{font-family:"Be Vietnam Pro",sans-serif}
 .lq-dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:0 0 11px;box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,0,0,.16)}
 .lq-dot-1{background:var(--festival-red)}.lq-dot-2{background:var(--festival-green)}.lq-dot-3{background:#f5b900}.lq-dot-4{background:var(--festival-blue)}
 .match-card{padding:14px 16px}.match-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.competitor{display:flex;justify-content:space-between;align-items:center;padding:9px 0;color:#8a94a8}.competitor+.competitor{border-top:1px solid #eef1f5}.competitor.winner{color:#0c1729}.competitor .who{display:flex;align-items:center;gap:9px}.match-score{font-family:"Barlow Condensed","Be Vietnam Pro",sans-serif;font-size:20px;font-weight:900;color:#0b1323}.match .line span{display:flex;align-items:center;gap:8px}
+
+/* v9 — resolved knockout participants */
+.match .line{min-height:28px}
+.match .line span{font-weight:700;color:#17243a}
+.match .line b{font-family:"Barlow Condensed","Be Vietnam Pro",sans-serif;font-size:20px}
+
+/* v10 — Tổng quan huy chương: chỉ nhận diện Liên quân */
+.medal-team-only{gap:10px}
+.medal-team-only .medal-icon{font-size:18px;line-height:1}
+.medal-team-only .lq-dot{width:14px;height:14px;flex-basis:14px}
+.medal-team-only .medal-lq{font-weight:800;color:#23314b}
