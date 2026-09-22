@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v14';
+ $('#live').textContent='● Dữ liệu trực tuyến • v15';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -77,8 +77,8 @@ function lqLabel(lq){let n=lqNo(lq);return n?`Liên quân ${n}`:(lq||'')}
 function lqPill(lq){let n=lqNo(lq);return `<span class="lq-pill lq-pill-${n}">${esc(lqLabel(lq))}</span>`}
 function lqDot(lq){let n=lqNo(lq);return n?`<span class="lq-dot lq-dot-${n}" title="${esc(lqLabel(lq))}"></span>`:''}
 function medalMark(type){
- const m={gold:['G','HCV'],silver:['S','HCB'],bronze:['B','HCĐ']}[type]||['',''];
- return `<span class="medal-mark medal-${type}" title="${m[1]}"><span>${m[0]}</span></span>`;
+ const label={gold:'HCV',silver:'HCB',bronze:'HCĐ'}[type]||'';
+ return `<span class="medal-badge medal-${type}">${label}</span>`;
 }
 function medalSummary(){
  const out={};
@@ -201,7 +201,7 @@ function podium(a){
  return `<div class="podium">${order.map((x,i)=>`<div class="podium-card place-${i===1?1:i===0?2:3}"><div class="podium-medal">${medalMark(types[i])}</div><strong>${esc(x.name)}</strong><div>${lqDot(x.lq)}</div><b>${x.t}s</b></div>`).join('')}</div>`;
 }
 function runTableV11(a,title,mark,medal){
- return `<div class="section-title small"><h2>${title}</h2></div><div class="table-wrap pro-table"><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>Liên quân</th><th>Thời gian chạy</th><th>Huy chương</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}</td><td><b>${esc(x.name)}</b></td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td><td>${medal&&i<3?[`${medalMark('gold')} HCV`,`${medalMark('silver')} HCB`,`${medalMark('bronze')} HCĐ`][i]:'—'}</td></tr>`).join('')||'<tr><td colspan="5">Chưa có thành tích.</td></tr>'}</tbody></table></div>`;
+ return `<div class="section-title small"><h2>${title}</h2></div><div class="table-wrap pro-table"><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>Liên quân</th><th>Thời gian chạy</th><th>Huy chương</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<mark?'q':''}"><td class="rank">${i+1}</td><td><b>${esc(x.name)}</b></td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td><td>${medal&&i<3?[medalMark('gold'),medalMark('silver'),medalMark('bronze')][i]:'—'}</td></tr>`).join('')||'<tr><td colspan="5">Chưa có thành tích.</td></tr>'}</tbody></table></div>`;
 }
 function heatResults(mid,rs){
  let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG')&&num(r['BTC nhập / Hệ thống tính A'])!==null);

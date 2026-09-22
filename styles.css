@@ -171,3 +171,25 @@ main{max-width:1280px;width:calc(100% - 32px);margin-left:auto;margin-right:auto
 .final-team-card>span:first-child{display:flex;align-items:center;gap:7px}
 @media(max-width:900px){.hateco-logo{width:160px}.hero-brand{gap:18px}}
 @media(max-width:600px){.hero-brand{align-items:flex-start;gap:13px}.hateco-logo{width:105px;margin-top:4px}.hero .eyebrow{font-size:9px}.hero h1{font-size:38px}.hero p{font-size:12px}}
+
+
+/* v15 — professional medal labels */
+.medal-mark{display:none!important}
+.medal-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:44px;height:25px;padding:0 9px;border-radius:999px;
+  font-size:11px;font-weight:800;line-height:1;letter-spacing:.03em;
+  border:1px solid rgba(15,35,64,.10);box-shadow:none;vertical-align:middle;
+}
+.medal-badge.medal-gold{background:#fff4c7;color:#795900;border-color:#efd779}
+.medal-badge.medal-silver{background:#edf1f5;color:#4d5c6d;border-color:#d4dce4}
+.medal-badge.medal-bronze{background:#f6e1d2;color:#824722;border-color:#e6b993}
+
+/* v15 mobile refinement */
+@media(max-width:640px){
+  .section-title h2{font-size:24px!important;line-height:1.08!important}
+  .section-title>span{font-size:13px!important}
+  .medal-grid,.team-medal-grid{grid-template-columns:1fr!important}
+  .team-medal-card{min-height:auto!important}
+  .medal-badge{min-width:42px;height:24px;font-size:10px;padding:0 8px}
+}
