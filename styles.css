@@ -118,3 +118,41 @@ body{background:#f3f5f9;color:#14213a}
 .final-team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px}.final-team-card{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e0e6ef;border-radius:14px;padding:17px}.final-team-card span:first-child{font-weight:800}.pro-bracket .match{background:#fff;border:1px solid #e0e6ef;border-left:4px solid #245fc2}.pro-bracket .line{display:grid;grid-template-columns:12px 1fr 35px;align-items:center;gap:8px}
 @media(max-width:950px){.result-filters{grid-template-columns:1fr 1fr}.heat-grid{grid-template-columns:repeat(2,1fr)}.final-team-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.hero{min-height:150px;padding:24px 18px}.hero h1{font-size:45px}.hero-year{display:none}.home-banner{padding:28px 22px;min-height:220px}.home-banner h2{font-size:40px}.home-banner-mark{display:none}.hero-stats{flex-wrap:wrap}.sport-overview-grid,.heat-grid,.podium,.final-team-grid{grid-template-columns:1fr}.result-filters{grid-template-columns:1fr}.result-versus{grid-template-columns:1fr 65px 1fr}.sport-title h1{font-size:32px}}
+
+/* v12 — readability, responsive layout, global running rank */
+body,button,input,select,table{font-family:"Be Vietnam Pro",Arial,sans-serif!important}
+h1,h2,h3,.sport,.num,.sport-medal-title,.rank,nav button,.subtabs button,
+.hero h1,.home-banner h2,.sport-title h1,.match-score,.match .line b{
+ font-family:"Be Vietnam Pro",Arial,sans-serif!important;
+ font-style:normal!important;letter-spacing:-.015em!important;
+}
+.hero h1{font-weight:800}.home-banner h2,.sport-title h1,.section-title h2{font-weight:800}
+.group-card>h3,.sport-medal-title,.sport{font-style:normal!important;text-transform:none!important;font-weight:800}
+.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%;overflow:visible}
+.group-card{min-width:0}.group-card .table-wrap{overflow-x:auto;max-width:100%}
+.compact table{min-width:0!important;width:100%;table-layout:auto}
+.compact th,.compact td{padding:9px 8px;font-size:11px}.compact td:nth-child(2){min-width:170px}
+.pro-bracket .side-lose{opacity:.38;filter:grayscale(.35)}
+.pro-bracket .side-lose span,.pro-bracket .side-lose b{font-weight:500!important}
+.pro-bracket .side-win{opacity:1}.pro-bracket .side-win span,.pro-bracket .side-win b{font-weight:800!important}
+.heat-card table{table-layout:auto}.heat-card td:nth-child(2){min-width:130px}
+html,body{max-width:100%;overflow-x:hidden}
+main{max-width:1280px;width:calc(100% - 32px);margin-left:auto;margin-right:auto}
+@media(max-width:900px){
+ .group-grid{grid-template-columns:1fr!important}
+ .compact td:nth-child(2){min-width:145px}
+ .bracket{grid-template-columns:1fr!important}
+}
+@media(max-width:600px){
+ main{width:calc(100% - 20px)}
+ nav{overflow-x:auto;display:flex;flex-wrap:nowrap;scrollbar-width:none}
+ nav button{flex:0 0 auto;font-size:12px}
+ .group-card .table-wrap{overflow-x:auto}
+ .compact table{min-width:520px!important}
+ .heat-grid{grid-template-columns:1fr!important}
+ .heat-card{overflow-x:auto}.heat-card table{min-width:440px}
+ .sport-title{align-items:flex-start}.sport-title-icon{flex:0 0 48px}
+ .sport-chips{gap:5px}.sport-chips span{font-size:10px}
+ .result-versus{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}
+ .result-player strong{font-size:11px}
+}

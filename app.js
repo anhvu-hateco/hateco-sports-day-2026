@@ -9,7 +9,7 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v11';
+ $('#live').textContent='● Dữ liệu trực tuyến • v12';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -135,7 +135,7 @@ function sportMeta(mid){
   M03:['22 cặp đôi','6 bảng vòng tròn','8 cặp vào Tứ kết','Loại trực tiếp'],
   M04:['28 VĐV','7 lượt vòng loại','Top 4 vào Chung kết','100m nam'],
   M05:['10 VĐV','3 lượt chạy','Xếp hạng toàn giải','100m nữ'],
-  M06:['Đội 4 người','Tiếp sức 2.500m','Top 3 nhận huy chương','Xếp hạng thời gian'],
+  M06:['9 đội','Tiếp sức 2.500m','Top 3 nhận huy chương','Xếp hạng thời gian'],
   M07:['4 đội','2 trận Bán kết','Chung kết','70 phút'],
   M08:['4 đội','2 trận Bán kết','Chung kết','BO3']
  }; return cfg[mid]||[];
@@ -201,8 +201,12 @@ function runTableV11(a,title,mark,medal){
 function heatResults(mid,rs){
  let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG')&&num(r['BTC nhập / Hệ thống tính A'])!==null);
  let heatRows=mid==='M04'?active.filter(r=>r['Vòng']==='Vòng loại'):active;
+ let all=heatRows.map(r=>({id:r.Match_ID,name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A']),heat:r['Bảng/Lượt']})).sort((x,y)=>x.t-y.t);
+ let globalRank=new Map(all.map((x,i)=>[x.id,i+1]));
  let hs=[...new Set(heatRows.map(r=>r['Bảng/Lượt']).filter(Boolean))];
- return `<div class="section-title"><h2>Kết quả các lượt chạy</h2><span>Thành tích theo từng lượt</span></div><div class="heat-grid">${hs.map(h=>{let a=heatRows.filter(r=>r['Bảng/Lượt']===h).map(r=>({name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((a,b)=>a.t-b.t);return `<div class="heat-card"><h3>${esc(h)}</h3><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td></tr>`).join('')}</tbody></table></div>`}).join('')}</div>`;
+ return `<div class="section-title"><h2>Kết quả các lượt chạy</h2><span>Xếp hạng tổng thể ${all.length} VĐV theo thành tích vòng loại</span></div>
+ <div class="heat-grid">${hs.map(h=>{let a=heatRows.filter(r=>r['Bảng/Lượt']===h).map(r=>({id:r.Match_ID,name:r['Đối tượng A'],lq:r.LQ_A,t:num(r['BTC nhập / Hệ thống tính A'])})).sort((x,y)=>x.t-y.t);
+ return `<div class="heat-card"><h3>${esc(h)}</h3><table><thead><tr><th>Hạng</th><th>VĐV/Đội</th><th>LQ</th><th>Thành tích</th></tr></thead><tbody>${a.map(x=>`<tr><td><b>${globalRank.get(x.id)}</b></td><td>${esc(x.name)}</td><td>${lqDot(x.lq)}</td><td><b>${x.t}s</b></td></tr>`).join('')}</tbody></table></div>`}).join('')}</div>`;
 }
 function runningV11(mid,rs){
  let active=rs.filter(r=>r.Slot_A_Code!=='DISABLED'&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG'));
@@ -214,7 +218,7 @@ function runningV11(mid,rs){
 function knockoutV11(mid,rs){
  let ks=rs.filter(r=>!['Vòng bảng','Vòng loại'].includes(r['Vòng'])&&!String(r['Ghi chú']).startsWith('KHÔNG SỬ DỤNG')), order=[...new Set(ks.map(r=>r['Vòng']))];
  const gd=!['M01','M02','M03'].includes(mid)||groupStageComplete(mid);
- return `<div class="section-title"><h2>${['M07','M08'].includes(mid)?'Kết quả thi đấu':'Vòng đấu loại trực tiếp'}</h2></div><div class="bracket pro-bracket">${order.map(v=>`<div class="round"><h3>${esc(v)}</h3>${ks.filter(r=>r['Vòng']===v).map(r=>{let A=gd?resolvedSide(r,'A'):null,B=gd?resolvedSide(r,'B'):null,sc=gd&&played(r)?score(r).split('–'):['',''];return `<div class="match"><div class="line">${lqDot(A?.lq)}<span>${esc(A?.name||(gd?'Chờ kết quả vòng trước':'Chờ vòng bảng'))}</span><b>${sc[0]||''}</b></div><div class="line">${lqDot(B?.lq)}<span>${esc(B?.name||(gd?'Chờ kết quả vòng trước':'Chờ vòng bảng'))}</span><b>${sc[1]||''}</b></div></div>`}).join('')}</div>`).join('')}</div>`;
+ return `<div class="section-title"><h2>${['M07','M08'].includes(mid)?'Kết quả thi đấu':'Vòng đấu loại trực tiếp'}</h2></div><div class="bracket pro-bracket">${order.map(v=>`<div class="round"><h3>${esc(v)}</h3>${ks.filter(r=>r['Vòng']===v).map(r=>{let A=gd?resolvedSide(r,'A'):null,B=gd?resolvedSide(r,'B'):null,w=gd?winner(r):null,sc=gd&&played(r)?score(r).split('–'):['',''];return `<div class="match"><div class="line ${w?(w==='A'?'side-win':'side-lose'):''}">${lqDot(A?.lq)}<span>${esc(A?.name||(gd?'Chờ kết quả vòng trước':'Chờ vòng bảng'))}</span><b>${sc[0]||''}</b></div><div class="line ${w?(w==='B'?'side-win':'side-lose'):''}">${lqDot(B?.lq)}<span>${esc(B?.name||(gd?'Chờ kết quả vòng trước':'Chờ vòng bảng'))}</span><b>${sc[1]||''}</b></div></div>`}).join('')}</div>`).join('')}</div>`;
 }
 function finalRankingTeams(mid,rs){
  let f=rs.find(r=>r['Vòng']==='Chung kết'), out=[];
