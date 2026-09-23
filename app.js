@@ -255,19 +255,25 @@ function mobileSports(){
 }
 function mobileRanking(){ $('#app').innerHTML=`<div class="mobile-page-title"><span>🏆</span><h2>Bảng xếp hạng</h2></div><div class="mobile-ranking-note">Huy chương theo nội dung</div>${overviewMedals()}` }
 function mobileSchedule(){
- // Mobile chỉ hiển thị lịch tổng quan theo môn/vòng, không bung từng bảng hay từng trận.
+ // Mobile: lịch tổng quan theo môn/vòng; không bung bảng/cặp đấu.
+ const fixed=[
+  {mid:'M01',stage:'Vòng bảng & Tứ kết',date:'27/09/2026',place:'Tập đoàn HATECO'},
+  {mid:'M01',stage:'Bán kết & Chung kết',date:'31/10/2026',place:'Tập đoàn HATECO'},
+  {mid:'M02',stage:'Vòng bảng, Tứ kết & Bán kết',date:'24/10/2026',place:'Hải Phòng'},
+  {mid:'M02',stage:'Chung kết',date:'31/10/2026',place:'Tập đoàn HATECO'},
+  {mid:'M03',stage:'Vòng bảng, Tứ kết & Bán kết',date:'24/10/2026',place:'Hải Phòng'},
+  {mid:'M03',stage:'Chung kết',date:'31/10/2026',place:'Tập đoàn HATECO'}
+ ];
  const normDate=v=>String(v||'').trim().replace(/-/g,'/');
  const is3110=v=>/^31\/10(?:\/2026)?$/.test(normDate(v));
  const keyDate=v=>{let m=normDate(v).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);return m?`${m[3]||'2026'}${String(m[2]).padStart(2,'0')}${String(m[1]).padStart(2,'0')}`:'99999999'};
- const items=[];
+ const items=[...fixed];
  Object.keys(SPORTS).forEach(mid=>{
-   const rs=rows.filter(r=>r.Mon_ID===mid);
-   if(mid==='M01') items.push({mid,stage:'Vòng loại / Vòng bảng',date:'27/09/2026',place:'Tập đoàn HATECO'});
+   if(['M01','M02','M03'].includes(mid)) return; // 3 môn này dùng lịch đã chốt ở trên.
    const seen=new Set();
-   rs.forEach(r=>{
+   rows.filter(r=>r.Mon_ID===mid).forEach(r=>{
      const stage=String(r['Vòng']||'').trim(), date=normDate(r['Ngày']);
      if(!date) return;
-     if(mid==='M01' && (stage==='Vòng bảng'||stage==='Vòng loại')) return;
      const place=is3110(date)?'Tập đoàn HATECO':String(r['Địa điểm']||'').trim();
      const k=[mid,stage,date,place].join('|'); if(seen.has(k)) return; seen.add(k);
      items.push({mid,stage:stage||'Thi đấu',date,place});
