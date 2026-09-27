@@ -9,7 +9,8 @@ async function load(){
  const data=await res.json();
  if(!data.ok) throw Error(data.error||'Google Apps Script không trả về dữ liệu');
  rows=(data.rows||[]).filter(r=>r.Match_ID);
- $('#live').textContent='● Dữ liệu trực tuyến • v18';
+ applyM01QuarterfinalBracket();
+ $('#live').textContent='● Dữ liệu trực tuyến • v22';
  buildNav(); show('home');
 }
 function buildNav(){let n=$('#nav');n.innerHTML=`<button data-id="home">Tổng quan</button>`+Object.entries(SPORTS).map(([id,n])=>`<button data-id="${id}">${n}</button>`).join('');n.onclick=e=>{if(e.target.dataset.id)show(e.target.dataset.id)}}
@@ -38,7 +39,31 @@ function groupStageComplete(mid){
  return gs.length>0 && gs.every(g=>groupComplete(mid,g));
 }
 function bestRunners(mid){if(!groupStageComplete(mid))return [];let a=[];for(let g of groups(mid)){let st=standings(mid,g);if(st[1])a.push(adjustedRunner(mid,g,st[1]))}a.sort((x,y)=>y.w-x.w||(mid==='M01'?((y.sf-y.sa)-(x.sf-x.sa)):0)||((y.pf-y.pa)-(x.pf-x.pa))||x.name.localeCompare(y.name,'vi'));return a.slice(0,2)}
-function runnerAssignments(mid){let ru=bestRunners(mid);if(ru.length<2)return {ru1:ru[0]||null,ru2:ru[1]||null,qf1:ru[1]||null,qf4:ru[0]||null};let q1=ru[1],q4=ru[0];if((q1.group==='Bảng A'||q4.group==='Bảng F')&&ru[0].group!=='Bảng A'&&ru[1].group!=='Bảng F'){q1=ru[0];q4=ru[1]}return {ru1:ru[0],ru2:ru[1],qf1:q1,qf4:q4}}
+function runnerAssignments(mid){
+ let ru=bestRunners(mid);
+ if(mid!=='M01') return {ru1:ru[0]||null,ru2:ru[1]||null,qfB:ru[0]||null,qfE:ru[1]||null};
+ let qfB=null,qfE=null;
+ if(ru.length===1){
+   if(ru[0].group==='Bảng B') qfE=ru[0]; else qfB=ru[0];
+ }else if(ru.length>=2){
+   const r1=ru[0],r2=ru[1];
+   if(r1.group==='Bảng B'){qfE=r1;qfB=r2;}
+   else if(r2.group==='Bảng B'){qfE=r2;qfB=r1;}
+   else if(r1.group==='Bảng E'){qfB=r1;qfE=r2;}
+   else if(r2.group==='Bảng E'){qfB=r2;qfE=r1;}
+   else {qfB=r1;qfE=r2;}
+ }
+ return {ru1:ru[0]||null,ru2:ru[1]||null,qfB,qfE};
+}
+function applyM01QuarterfinalBracket(){
+ const cfg={
+  TR034:['Nhất Bảng A','Nhất Bảng C','M01_GA_R1','M01_GC_R1'],
+  TR035:['Nhất Bảng B','Nhì xuất sắc (không cùng Bảng B)','M01_GB_R1','M01_BEST_RU_NOT_GB'],
+  TR036:['Nhất Bảng D','Nhất Bảng F','M01_GD_R1','M01_GF_R1'],
+  TR037:['Nhất Bảng E','Nhì xuất sắc (không cùng Bảng E)','M01_GE_R1','M01_BEST_RU_NOT_GE']
+ };
+ for(const r of rows){const c=cfg[r.Match_ID];if(!c||r.Mon_ID!=='M01')continue;r['Đối tượng A']=c[0];r['Đối tượng B']=c[1];r.Slot_A_Code=c[2];r.Slot_B_Code=c[3];}
+}
 function findMatch(id){return rows.find(r=>r.Match_ID===id)}
 function sideObj(r,side){if(!r)return null;let n=r[side==='A'?'Đối tượng A':'Đối tượng B'],lq=r[side==='A'?'LQ_A':'LQ_B'];return n?{name:n,lq}:null}
 function winObj(id){
@@ -49,7 +74,7 @@ function winObj(id){
  return resolvedSide(r,w);
 }
 function groupRankObj(mid,g,rank){let s=standings(mid,g)[rank-1];return s?{name:s.name,lq:s.lq,group:g}:null}
-function resolveCode(code,mid){if(!code)return null;if(code.startsWith('WIN_'))return winObj(code.slice(4));let m=code.match(/^M0[123]_G([A-F])_R1$/);if(m){const g=`Bảng ${m[1]}`;return groupComplete(mid,g)?groupRankObj(mid,g,1):null;}if(code.includes('BEST_RU1')){let x=runnerAssignments(mid).ru1;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2')){let x=runnerAssignments(mid).ru2;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2_NOT_GA')){let x=runnerAssignments(mid).qf1;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU1_NOT_GF')){let x=runnerAssignments(mid).qf4;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.startsWith('M04_HEAT_RANK_')){let qrows=rows.filter(r=>r.Mon_ID==='M04'&&r['Vòng']==='Vòng loại');if(!qrows.length||!qrows.every(r=>num(r['BTC nhập / Hệ thống tính A'])!==null))return null;let rank=+code.split('_').pop(),x=runningQualifiers()[rank-1];return x?{name:x.name,lq:x.lq}:null}return null}
+function resolveCode(code,mid){if(!code)return null;if(code.startsWith('WIN_'))return winObj(code.slice(4));let m=code.match(/^M0[123]_G([A-F])_R1$/);if(m){const g=`Bảng ${m[1]}`;return groupComplete(mid,g)?groupRankObj(mid,g,1):null;}if(code.includes('BEST_RU1')){let x=runnerAssignments(mid).ru1;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2')){let x=runnerAssignments(mid).ru2;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU_NOT_GB')){let x=runnerAssignments(mid).qfB;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU_NOT_GE')){let x=runnerAssignments(mid).qfE;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU2_NOT_GA')){let x=runnerAssignments(mid).qfB;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.includes('BEST_RU1_NOT_GF')){let x=runnerAssignments(mid).qfE;return x?{name:x.name,lq:x.lq,group:x.group}:null}if(code.startsWith('M04_HEAT_RANK_')){let qrows=rows.filter(r=>r.Mon_ID==='M04'&&r['Vòng']==='Vòng loại');if(!qrows.length||!qrows.every(r=>num(r['BTC nhập / Hệ thống tính A'])!==null))return null;let rank=+code.split('_').pop(),x=runningQualifiers()[rank-1];return x?{name:x.name,lq:x.lq}:null}return null}
 function resolvedSide(r,side){
  let code=r[side==='A'?'Slot_A_Code':'Slot_B_Code'];
  let o=resolveCode(code,r.Mon_ID);
