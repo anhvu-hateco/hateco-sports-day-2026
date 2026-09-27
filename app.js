@@ -37,7 +37,7 @@ function groupStageComplete(mid){
  const gs=groups(mid);
  return gs.length>0 && gs.every(g=>groupComplete(mid,g));
 }
-function bestRunners(mid){if(!groupStageComplete(mid))return [];let a=[];for(let g of groups(mid)){let st=standings(mid,g);if(st[1])a.push(adjustedRunner(mid,g,st[1]))}a.sort((x,y)=>y.w-x.w||((y.pf-y.pa)-(x.pf-x.pa))||y.pf-x.pf||x.name.localeCompare(y.name,'vi'));return a.slice(0,2)}
+function bestRunners(mid){if(!groupStageComplete(mid))return [];let a=[];for(let g of groups(mid)){let st=standings(mid,g);if(st[1])a.push(adjustedRunner(mid,g,st[1]))}a.sort((x,y)=>y.w-x.w||(mid==='M01'?((y.sf-y.sa)-(x.sf-x.sa)):0)||((y.pf-y.pa)-(x.pf-x.pa))||x.name.localeCompare(y.name,'vi'));return a.slice(0,2)}
 function runnerAssignments(mid){let ru=bestRunners(mid);if(ru.length<2)return {ru1:ru[0]||null,ru2:ru[1]||null,qf1:ru[1]||null,qf4:ru[0]||null};let q1=ru[1],q4=ru[0];if((q1.group==='Bảng A'||q4.group==='Bảng F')&&ru[0].group!=='Bảng A'&&ru[1].group!=='Bảng F'){q1=ru[0];q4=ru[1]}return {ru1:ru[0],ru2:ru[1],qf1:q1,qf4:q4}}
 function findMatch(id){return rows.find(r=>r.Match_ID===id)}
 function sideObj(r,side){if(!r)return null;let n=r[side==='A'?'Đối tượng A':'Đối tượng B'],lq=r[side==='A'?'LQ_A':'LQ_B'];return n?{name:n,lq}:null}
@@ -122,13 +122,13 @@ function allRunners(mid){
  if(!groupStageComplete(mid)) return [];
  let a=[];
  for(let g of groups(mid)){let st=standings(mid,g);if(st[1])a.push(adjustedRunner(mid,g,st[1]))}
- a.sort((x,y)=>y.w-x.w||((y.pf-y.pa)-(x.pf-x.pa))||y.pf-x.pf||x.name.localeCompare(y.name,'vi'));
+ a.sort((x,y)=>y.w-x.w||(mid==='M01'?((y.sf-y.sa)-(x.sf-x.sa)):0)||((y.pf-y.pa)-(x.pf-x.pa))||x.name.localeCompare(y.name,'vi'));
  return a;
 }
 function runnersAllBlock(mid){
  let a=allRunners(mid);
  if(!a.length)return `<div class="notice">Chờ hoàn thành toàn bộ vòng bảng để so sánh các VĐV/đội Nhì bảng.</div>`;
- return `<h3>So sánh các Nhì bảng</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>Bảng</th><th>LQ</th><th>Thắng</th><th>HS điểm</th><th>Tổng điểm thắng</th><th>Kết quả</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<2?'q':''}"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.group)}</td><td>${lqDot(x.lq)}</td><td>${x.w}</td><td>${x.pf-x.pa}</td><td>${x.pf}</td><td>${i<2?'<b>✅ Vào Tứ kết</b>':'—'}</td></tr>`).join('')}</tbody></table></div><div class="notice">Bảng 4 VĐV/đội: khi so sánh Nhì xuất sắc, hệ thống loại kết quả gặp người/đội xếp thứ 4.</div>`;
+ return `<h3>So sánh các Nhì bảng</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>VĐV/Đội</th><th>Bảng</th><th>LQ</th><th>Thắng</th>${mid==='M01'?'<th>HS set</th>':''}<th>HS điểm</th><th>Kết quả</th></tr></thead><tbody>${a.map((x,i)=>`<tr class="${i<2?'q':''}"><td class="rank">${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.group)}</td><td>${lqDot(x.lq)}</td><td>${x.w}</td>${mid==='M01'?`<td>${x.sf-x.sa}</td>`:''}<td>${x.pf-x.pa}</td><td>${i<2?'<b>✅ Vào Tứ kết</b>':'—'}</td></tr>`).join('')}</tbody></table></div><div class="notice">So sánh Nhì bảng: Thắng → Hiệu số set → Hiệu số điểm. Với bảng 4 VĐV/đội, hệ thống loại toàn bộ kết quả gặp người/đội xếp thứ 4 trước khi so sánh.</div>`;
 }
 
 
